@@ -3,7 +3,6 @@ import subprocess
 import json
 import os
 import dlib
-import gdown
 import pickle
 import re
 from models import Wav2Lip
