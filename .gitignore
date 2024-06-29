@@ -15,3 +15,7 @@ evaluation/test_filelists/lr*.txt
 *.webm
 *.mp3
 .env
+*.pk1
+installed.txt
+*.dat
+database.json
