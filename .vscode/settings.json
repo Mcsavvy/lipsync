@@ -1,0 +1,25 @@
+{
+    "files.autoSave": "off",
+    "[python]": {
+        "diffEditor.ignoreTrimWhitespace": false,
+        "editor.formatOnType": true,
+        "editor.wordBasedSuggestions": "off",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll.ruff": "explicit"
+        },
+        "editor.defaultFormatter": "charliermarsh.ruff",
+    },
+    "ruff.importStrategy": "fromEnvironment",
+    "ruff.organizeImports": false,
+    "ruff.lint.run": "onType",
+    "python.analysis.inlayHints.callArgumentNames": "off",
+    "python.analysis.inlayHints.functionReturnTypes": false,
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.inlayHints.variableTypes": false,
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "modifications",
+    "editor.formatOnType": true,
+}
