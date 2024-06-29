@@ -24,7 +24,12 @@ def get_basicsr_location():
     result = subprocess.run(['pip', 'show', 'basicsr'], capture_output=True, text=True)
     for line in result.stdout.split('\n'):
         if 'Location: ' in line:
-            return line.split('Location: ')[1]
+            loc = line.split('Location: ')[1]
+            if loc.endswith("site-packages"):
+                loc = os.path.join(loc, 'basicsr')
+            if loc.endswith('basicsr'):
+                loc = os.path.join(loc, 'data')
+            return loc
     return None
 
 # Move and replace a file to the basicsr location
