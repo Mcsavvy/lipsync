@@ -47,6 +47,21 @@ from enhance import load_sr
 
 working_directory = os.getcwd()
 
+# create essential directories
+os.makedirs(os.path.join(working_directory, "checkpoints"), exist_ok=True)
+os.makedirs(os.path.join(working_directory, "temp"), exist_ok=True)
+os.makedirs(os.path.join(working_directory, "face_alignment"), exist_ok=True)
+os.makedirs(os.path.join(working_directory, "results"), exist_ok=True)
+
+# download mobilenet model
+print("downloading mobilenet essentials")
+load_file_from_url(
+    url="https://github.com/anothermartz/Easy-Wav2Lip/raw/v8.3/checkpoints/mobilenet.pth",
+    model_dir="checkpoints",
+    progress=True,
+    file_name="mobilenet.pth",
+)
+
 # download and initialize both wav2lip models
 print("downloading wav2lip essentials")
 load_file_from_url(
