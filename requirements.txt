@@ -7,3 +7,4 @@ gdown
 librosa
 numpy<2
 moviepy
+customtkinter
