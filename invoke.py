@@ -453,7 +453,7 @@ def main(
     batch_size = 1
     ns.wav2lip_batch_size = batch_size
     total = int(np.ceil(len(frames) / batch_size))
-    yield {"total": total}
+    yield {"total": total, "output": output}
     frame_number = 1
     do_load(checkpoint_path)
     for _ in invoke_model(
