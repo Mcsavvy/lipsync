@@ -7,10 +7,9 @@ import logging
 import os
 import shutil
 import subprocess
-import sys
 from typing import Literal, cast
 import cv2
-import torch
+import torch  # type: ignore[import]
 from typing_extensions import TypedDict
 from uuid import uuid4
 import json
@@ -85,10 +84,6 @@ def save_config(
     """Save the configuration to the database."""
     # create the database if it doesn't exist
     logger.info("Saving configuration to database")
-    if not os.path.exists(DATABASE_PATH):
-        logger.debug("Creating database")
-        with open(DATABASE_PATH, "w") as file:
-            json.dump({}, file)
     with open(DATABASE_PATH, "r") as file:
         logger.debug("Loading database")
         database = json.load(file)
@@ -107,9 +102,14 @@ def ensure_resouces(face: str, audio: str, output: str):
     os.makedirs(TEMP_PATH, exist_ok=True)
     # remove last_detected_face.pkl if input face changes
     # get last entry in database
-    file = open(DATABASE_PATH, "r")
-    database = json.load(file)
-    file.close()
+    if not os.path.exists(DATABASE_PATH):
+        logger.debug("Creating database")
+        with open(DATABASE_PATH, "w") as file:
+            json.dump({}, file)
+            database = {}
+    else:
+        with open(DATABASE_PATH, "r") as file:
+            database = json.load(file)
     if database:
         last_entry = database[next(reversed(database))]
         last_face = last_entry["params"]["face"]
@@ -442,36 +442,6 @@ def main(
             ffmpeg_extract_subclip(face, 0, audio_length, targetname=trimmed_video)
         temp_face = trimmed_video
 
-    cmd = [
-        sys.executable,
-        "inference.py",
-        "--face",
-        temp_face,
-        "--audio",
-        temp_audio,
-        "--outfile",
-        temp_output,
-        "--pads",
-        *[str(p) for p in pad],
-        "--checkpoint_path",
-        checkpoint_path,
-        "--out_height",
-        str(output_height),
-        "--fullres",
-        str(res_scale),
-        "--quality",
-        quality,
-        "--mask_dilation",
-        str(mask["size"]),
-        "--mask_feathering",
-        str(mask["feathering"]),
-        "--nosmooth",
-        str(not smooth),
-        "--debug_mask",
-        str(mask["debug_mask"]),
-        "--mouth_tracking",
-        str(mask["mouth_tracking"]),
-    ]
     # subprocess.check_call(cmd)
     frames, fps = get_frames(
         temp_face, frames_per_second, res_scale, output_height, rotate, crop, is_image
