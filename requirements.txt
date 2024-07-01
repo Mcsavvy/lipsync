@@ -8,3 +8,6 @@ librosa
 numpy<2
 moviepy
 customtkinter
+Pillow
+CTkMessagebox
+universal-startfile
