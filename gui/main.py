@@ -1,15 +1,397 @@
-import customtkinter
+from __future__ import annotations
+import os
+import customtkinter  # type: ignore[import]
+from CTkMessagebox import CTkMessagebox # type: ignore[import]
+from startfile import startfile # type: ignore[import]
+
 
 from PIL import Image, ImageTk
 import cv2
-from .color import (
+
+from invoke_dummy import (
+    main,
+    ModelQuality,
+    ModelVersion,
+    OutputHeight,
+    Coordinates,
+    FaceMask,
+)
+from .color import (  # type: ignore[import]
     PRIMARY_COLOR,
     PRIMARY_COLOR_2,
-    PRIMARY_COLOR_3,
     SECONDARY_COLOR,
     NEUTRAL_COLOR,
     NEUTRAL_COLOR_1,
 )
+from customtkinter import (
+    BooleanVar,
+    IntVar,
+    StringVar,
+    DoubleVar,
+    CTkCheckBox,
+    CTkEntry,
+    CTkLabel,
+)
+
+
+customtkinter.set_appearance_mode("light")
+
+
+def NumberInput(var: IntVar, frame: customtkinter.CTkFrame) -> CTkEntry:
+    return customtkinter.CTkEntry(
+        frame,
+        textvariable=var,
+        width=50,
+        height=20,
+        border_width=1,
+        border_color=NEUTRAL_COLOR,
+        text_color=NEUTRAL_COLOR,
+    )
+
+
+def CheckBoxInput(
+    var: BooleanVar, frame: customtkinter.CTkFrame, text: str
+) -> CTkCheckBox:
+    return customtkinter.CTkCheckBox(
+        frame,
+        variable=var,
+        checkbox_height=20,
+        checkbox_width=20,
+        text=text,
+        text_color=NEUTRAL_COLOR,
+    )
+
+
+def NumberInputLabel(frame: customtkinter.CTkFrame, text: str) -> CTkLabel:
+    return customtkinter.CTkLabel(frame, text=text, text_color=NEUTRAL_COLOR)
+
+
+def file_options_init(
+    app: "App",
+    frame: customtkinter.CTkFrame,
+):
+    preview_label: customtkinter.CTkLabel
+
+    def open_video_image_dialog():
+        file_types = (
+            ("Video files", "*.mp4 *.avi"),
+            ("Image files", "*.jpg *.jpeg *.png"),
+        )
+
+        file_obj = customtkinter.filedialog.askopenfile(
+            title="Select files", filetypes=file_types
+        )
+
+        if file_obj:
+            file_name_label.configure(text=os.path.basename(file_obj.name))
+            app.face_var.set(file_obj.name)
+            display_preview(file_obj.name)
+        else:
+            file_name_label.configure(text="No Video/Image")
+            app.face_var.set("")
+            display_preview("")
+
+    def display_preview(file_path: str):
+        if file_path.lower().endswith((".jpg", ".jpeg", ".png")):
+            img = Image.open(file_path)
+            img.thumbnail((1000, 200))  # Resize for preview
+            img_preview = ImageTk.PhotoImage(img)
+
+            # Display image preview
+            preview_label.configure(image=img_preview, text="")
+            preview_label.image = img_preview  # Keep a reference
+        elif file_path.lower().endswith((".mp4", ".avi")):
+            # Display video preview (first frame)
+            cap = cv2.VideoCapture(file_path)
+            ret, frame = cap.read()
+            if ret:
+                preview_label.configure(text="")
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                img = Image.fromarray(frame)
+                img.thumbnail(
+                    (1000, 200), Image.Resampling.LANCZOS
+                )  # Resize for preview
+                img_preview = ImageTk.PhotoImage(img)
+                preview_label.configure(image=img_preview, text="")
+                preview_label.image = img_preview  # Keep a reference
+            cap.release()
+
+    def open_audio_dialog():
+        file_types = (("Audio files", "*.mp3 *.wav *.aac"),)
+
+        file_obj = customtkinter.filedialog.askopenfile(
+            title="Select Audio File", filetypes=file_types
+        )
+
+        if file_obj:
+            file_audio_label.configure(text=os.path.basename(file_obj.name))
+            app.audio_var.set(file_obj.name)
+        else:
+            file_audio_label.configure(text="No Audio")
+            app.audio_var.set("")
+
+    # BUG: placeholder not sowing when variable is passed
+    # # title input
+    # sync_title_input = customtkinter.CTkEntry(
+    #     frame,
+    #     width=app.width / 2,
+    #     placeholder_text="name of this sync",
+    #     placeholder_text_color="#808080",
+    #     text_color=NEUTRAL_COLOR,
+    #     textvariable=app.output_var,
+    # )
+    # sync_title_input._activate_placeholder()
+    # sync_title_input.pack(anchor="w", padx=(20, 20), pady=(20, 0), ipady=10)
+
+    # open image or vide
+
+    # Preview label for image or video
+    preview_label = customtkinter.CTkLabel(
+        frame,
+        text="Image/Video Preview",
+        text_color=NEUTRAL_COLOR_1,
+        bg_color="#808080",
+        corner_radius=10,
+        width=app.width / 2,
+        height=200,
+    )
+    preview_label.pack(anchor="w", padx=(20, 20), pady=(20, 0))
+    file_name_label = customtkinter.CTkLabel(
+        frame,
+        text="No Video/Image",
+        fg_color=NEUTRAL_COLOR,
+        text_color=NEUTRAL_COLOR_1,
+        corner_radius=10,
+        width=app.width / 2,
+    )
+    file_name_label.pack(
+        anchor="w",
+        padx=(20, 20),
+        pady=(10, 0),
+        ipady=10,
+    )
+    open_image_video = customtkinter.CTkButton(
+        frame,
+        text="Upload Image/Video",
+        width=app.width / 2,
+        fg_color=PRIMARY_COLOR,
+        hover_color=PRIMARY_COLOR,
+        corner_radius=10,
+        command=open_video_image_dialog,
+    )
+    open_image_video.pack(anchor="w", padx=(20, 20), pady=(20, 0), ipady=10)
+
+    # open audio
+    file_audio_label = customtkinter.CTkLabel(
+        frame,
+        text="No Audio",
+        fg_color=NEUTRAL_COLOR,
+        text_color=NEUTRAL_COLOR_1,
+        corner_radius=10,
+        width=app.width / 2,
+    )
+    file_audio_label.pack(
+        anchor="w",
+        padx=(20, 20),
+        pady=(50, 0),
+        ipady=10,
+    )
+
+    open_audio = customtkinter.CTkButton(
+        frame,
+        text="Upload Audio",
+        width=app.width / 2,
+        fg_color=PRIMARY_COLOR,
+        hover_color=PRIMARY_COLOR,
+        corner_radius=10,
+        command=open_audio_dialog,
+    )
+    open_audio.pack(anchor="w", padx=(20, 20), pady=(20, 0), ipady=10)
+
+
+def crop_options_init(app: "App", frame: customtkinter.CTkFrame):
+    croppad_label = customtkinter.CTkLabel(
+        frame, text="Mouth Cropping", text_color=NEUTRAL_COLOR
+    )
+    croppad_label.grid(sticky="w", padx=(20, 2), row=0, column=0, columnspan=2)
+    crop_top_label = NumberInputLabel(frame, text="top")
+    crop_top_label.grid(sticky="w", padx=(20, 5), row=1, column=0)
+    crop_top_entry = NumberInput(app.crop_top_var, frame)
+    crop_top_entry.grid(sticky="w", padx=(0, 20), row=1, column=1)
+
+    crop_bottom_label = NumberInputLabel(frame, text="bottom")
+    crop_bottom_label.grid(sticky="w", padx=(20, 5), row=1, column=2)
+    crop_bottom_entry = NumberInput(app.crop_bottom_var, frame)
+    crop_bottom_entry.grid(sticky="w", padx=(0, 0), row=1, column=3)
+
+    crop_left_label = NumberInputLabel(frame, text="left")
+    crop_left_label.grid(sticky="w", padx=(20, 5), row=1, column=4)
+    crop_left_entry = NumberInput(app.crop_left_var, frame)
+    crop_left_entry.grid(sticky="w", padx=(0, 0), row=1, column=5)
+
+    crop_right_label = NumberInputLabel(frame, text="right")
+    crop_right_label.grid(sticky="w", padx=(20, 5), row=1, column=6)
+    crop_right_entry = NumberInput(app.crop_right_var, frame)
+    crop_right_entry.grid(sticky="w", padx=(0, 0), row=1, column=7)
+
+
+def padding_options_init(app: "App", frame: customtkinter.CTkFrame):
+    padding_label = customtkinter.CTkLabel(
+        frame, text="Mouth Padding", text_color=NEUTRAL_COLOR
+    )
+    padding_label.grid(sticky="w", padx=(20, 5), row=0, column=0, columnspan=2)
+
+    pad_top_label = NumberInputLabel(frame, text="top")
+    pad_top_label.grid(sticky="w", padx=(20, 5), row=1, column=0)
+    pad_top_entry = NumberInput(app.pad_top_var, frame)
+    pad_top_entry.grid(sticky="w", padx=(0, 20), row=1, column=1)
+
+    pad_bottom_label = NumberInputLabel(frame, text="bottom")
+    pad_bottom_label.grid(sticky="w", padx=(20, 5), row=1, column=2)
+    pad_bottom_entry = NumberInput(app.pad_bottom_var, frame)
+    pad_bottom_entry.grid(sticky="w", padx=(0, 0), row=1, column=3)
+
+    pad_left_label = NumberInputLabel(frame, text="left")
+    pad_left_label.grid(sticky="w", padx=(20, 5), row=1, column=4)
+    pad_left_entry = NumberInput(app.pad_left_var, frame)
+    pad_left_entry.grid(sticky="w", padx=(0, 0), row=1, column=5)
+
+    pad_right_label = NumberInputLabel(frame, text="right")
+    pad_right_label.grid(sticky="w", padx=(20, 5), row=1, column=6)
+    pad_right_entry = NumberInput(app.pad_right_var, frame)
+    pad_right_entry.grid(sticky="w", padx=(0, 0), row=1, column=7)
+
+
+def bounding_box_options_init(app: "App", frame: customtkinter.CTkFrame):
+    bounding_label = customtkinter.CTkLabel(
+        frame, text="Bounding Box", text_color=NEUTRAL_COLOR
+    )
+    bounding_label.grid(sticky="w", padx=(20, 5), row=0, column=0, columnspan=2)
+
+    bounding_top_label = NumberInputLabel(frame, text="top")
+    bounding_top_label.grid(sticky="w", padx=(20, 5), row=1, column=0)
+    bounding_top_entry = NumberInput(app.bounding_top_var, frame)
+    bounding_top_entry.grid(sticky="w", padx=(0, 20), row=1, column=1)
+
+    bounding_bottom_label = NumberInputLabel(frame, text="bottom")
+    bounding_bottom_label.grid(sticky="w", padx=(20, 5), row=1, column=2)
+    bounding_bottom_entry = NumberInput(app.bounding_bottom_var, frame)
+    bounding_bottom_entry.grid(sticky="w", padx=(0, 0), row=1, column=3)
+
+    bounding_left_label = NumberInputLabel(frame, text="left")
+    bounding_left_label.grid(sticky="w", padx=(20, 5), row=1, column=4)
+    bounding_left_entry = NumberInput(app.bounding_left_var, frame)
+    bounding_left_entry.grid(sticky="w", padx=(0, 0), row=1, column=5)
+
+    bounding_right_label = NumberInputLabel(frame, text="right")
+    bounding_right_label.grid(sticky="w", padx=(20, 5), row=1, column=6)
+    bounding_right_entry = NumberInput(app.bounding_right_var, frame)
+    bounding_right_entry.grid(sticky="w", padx=(0, 0), row=1, column=7)
+
+
+def rendering_options_init(app: "App", frame: customtkinter.CTkFrame):
+    rendering_label = customtkinter.CTkLabel(
+        frame, text="Rendering Options", text_color=NEUTRAL_COLOR
+    )
+    rendering_label.grid(sticky="w", padx=(20, 5), row=0, column=0, columnspan=2)
+
+    static = CheckBoxInput(app.static_var, frame, "Static")
+    static.grid(sticky="w", padx=(20, 5), row=1, column=0)
+
+    rotate = CheckBoxInput(app.rotate_var, frame, "Rotate")
+    rotate.grid(sticky="w", padx=(20, 5), row=1, column=1)
+
+    smooth = CheckBoxInput(app.smooth_var, frame, "Smooth")
+    smooth.grid(sticky="w", padx=(20, 5), row=1, column=2)
+
+    super_resolution = CheckBoxInput(
+        app.super_resolution_var, frame, "Super Resolution"
+    )
+    super_resolution.grid(sticky="w", padx=(20, 5), row=1, column=3)
+
+    height_label = customtkinter.CTkLabel(
+        frame, text="Output Height", text_color=NEUTRAL_COLOR
+    )
+    height_label.grid(sticky="w", padx=(20, 5), pady=(15, 0), row=2, column=0)
+    height = customtkinter.CTkComboBox(
+        frame,
+        values=["full resolution", "half resolution"],
+        variable=app.height_var,
+    )
+    height.grid(sticky="w", padx=(20, 5), pady=(15, 0), row=2, column=1)
+
+    fps_label = customtkinter.CTkLabel(
+        frame, text="Frames Per Second", text_color=NEUTRAL_COLOR
+    )
+    fps_label.grid(sticky="w", padx=(20, 5), pady=(15, 0), row=2, column=2)
+    fps = NumberInput(app.fps_var, frame)
+    fps.grid(sticky="w", padx=(20, 5), pady=(15, 0), row=2, column=3)
+
+
+def mask_options_init(app: "App", frame: customtkinter.CTkFrame):
+    mask_label = customtkinter.CTkLabel(
+        frame, text="Mask Options", text_color=NEUTRAL_COLOR
+    )
+    mask_label.grid(sticky="w", padx=(20, 5), row=0, column=0, columnspan=2)
+
+    mask_size_label = customtkinter.CTkLabel(
+        frame, text="Size", text_color=NEUTRAL_COLOR
+    )
+    mask_size_label.grid(sticky="w", padx=(20, 5), row=1, column=0)
+    mask_size = NumberInput(app.mask_size_var, frame)
+    mask_size.grid(sticky="w", padx=(0, 0), row=1, column=1)
+
+    mask_feathering_label = customtkinter.CTkLabel(
+        frame, text="Feathering", text_color=NEUTRAL_COLOR
+    )
+    mask_feathering_label.grid(sticky="w", padx=(20, 5), row=1, column=2)
+    mask_feathering = NumberInput(app.mask_feathering_var, frame)
+    mask_feathering.grid(sticky="w", padx=(0, 0), row=1, column=3)
+
+    mask_mouth_tracking = CheckBoxInput(
+        app.mask_mouth_tracking, frame, "Mouth Tracking"
+    )
+    mask_mouth_tracking.grid(sticky="w", padx=(40, 5), row=1, column=4)
+
+    debug_mask = CheckBoxInput(app.debug_mask, frame, "Debug Mask")
+    debug_mask.grid(sticky="w", padx=(20, 5), row=1, column=5)
+
+
+def model_options_init(app: "App", frame: customtkinter.CTkFrame):
+    model_label = customtkinter.CTkLabel(
+        frame, text="Model Options", text_color=NEUTRAL_COLOR
+    )
+    model_label.grid(sticky="w", padx=(20, 5), row=0, column=0, columnspan=2)
+
+    model_select_label = customtkinter.CTkLabel(
+        frame, text="Version", text_color=NEUTRAL_COLOR
+    )
+    model_select_label.grid(sticky="w", padx=(20, 5), row=1, column=0)
+    model_select = customtkinter.CTkComboBox(
+        frame, values=["wav2lip", "wav2lip_GAN"], variable=app.version_var, width=120
+    )
+    model_select.grid(sticky="w", padx=(0, 0), row=1, column=1)
+
+    model_quality_label = customtkinter.CTkLabel(
+        frame, text="Quality", text_color=NEUTRAL_COLOR
+    )
+    model_quality_label.grid(sticky="w", padx=(20, 5), row=1, column=2)
+    model_quality_select = customtkinter.CTkComboBox(
+        frame,
+        values=["Improved", "Fast", "Enhanced"],
+        variable=app.quality_var,
+        width=100,
+    )
+    model_quality_select.grid(sticky="w", padx=(0, 0), row=1, column=3)
+
+    upscaler_label = customtkinter.CTkLabel(
+        frame, text="Upscaler", text_color=NEUTRAL_COLOR
+    )
+    upscaler_label.grid(sticky="w", padx=(20, 5), row=1, column=4)
+    upscaler = customtkinter.CTkComboBox(
+        frame, values=["gfpgan", "RestoreFormer"], variable=app.upscaler_var, width=130
+    )
+    upscaler.grid(sticky="w", padx=(0, 0), row=1, column=5)
 
 
 class App(customtkinter.CTk):
@@ -18,6 +400,48 @@ class App(customtkinter.CTk):
 
     def __init__(self):
         super().__init__()
+
+        # file variables
+        self.face_var = StringVar(self)
+        self.audio_var = StringVar(self)
+        self.output_var = StringVar(self)
+
+        # model variables
+        self.quality_var = StringVar(self, value="Fast")
+        self.version_var = StringVar(self, value="Wav2Lip")
+        self.upscaler_var = StringVar(self, value="gfpgan")
+
+        # rendering variables
+        self.fps_var = IntVar(self, value=25)
+        self.static_var = BooleanVar(self, value=False)
+        self.rotate_var = BooleanVar(self, value=False)
+        self.smooth_var = BooleanVar(self, value=False)
+        self.height_var = StringVar(self, value="full resolution")
+        self.super_resolution_var = BooleanVar(self, value=True)
+
+        # padding variables
+        self.pad_top_var = IntVar(self, value=0)
+        self.pad_bottom_var = IntVar(self, value=0)
+        self.pad_left_var = IntVar(self, value=0)
+        self.pad_right_var = IntVar(self, value=0)
+
+        # mask variables
+        self.mask_size_var = DoubleVar(self, value=2.5)
+        self.mask_feathering_var = IntVar(self, value=2)
+        self.mask_mouth_tracking = BooleanVar(self, value=False)
+        self.debug_mask = BooleanVar(self, value=False)
+
+        # crop variables
+        self.crop_top_var = IntVar(self, value=0)
+        self.crop_bottom_var = IntVar(self, value=-1)
+        self.crop_left_var = IntVar(self, value=0)
+        self.crop_right_var = IntVar(self, value=-1)
+
+        # bounding box variables
+        self.bounding_top_var = IntVar(self, value=-1)
+        self.bounding_bottom_var = IntVar(self, value=-1)
+        self.bounding_left_var = IntVar(self, value=-1)
+        self.bounding_right_var = IntVar(self, value=-1)
 
         # generating size based on user screen
         self.width = self.winfo_screenwidth()
@@ -31,61 +455,48 @@ class App(customtkinter.CTk):
         self.title("Lip Sync")
         self.geometry(self.custom_size)
 
-        # parent default frame
-        self.history_parent_frame = customtkinter.CTkFrame(
-            self, width=self.width, height=self.height
-        )
-        self.history_parent_frame.pack(side="top", fill="both", expand=True)
-        # header frame
-        self.header_frame = customtkinter.CTkFrame(
-            self.history_parent_frame,
+        self.tabview = customtkinter.CTkTabview(self)
+        self.tabview.pack(side="top", fill="both", expand=True)
+        self.tabview.add("Home")
+        self.tabview.add("Sync")
+
+        self.home_tab = self.tabview.tab("Home")
+        self.sync_tab = self.tabview.tab("Sync")
+
+        self.init_home_tab()
+        self.init_sync_tab()
+
+    def init_home_tab(self):
+        header_frame = customtkinter.CTkFrame(
+            self.home_tab,
             width=self.width,
             bg_color=PRIMARY_COLOR,
             fg_color=PRIMARY_COLOR,
         )
-        self.header_frame.pack(side="top", fill="x", expand=False, pady=0, padx=0)
+        header_frame.pack(side="top", fill="x", expand=False, pady=0, padx=0)
 
-        self.header_text_logo = customtkinter.CTkLabel(
-            self.header_frame, text="LIP-SYNC", width=10, height=10, font=self.font_18
+        header_text_logo = customtkinter.CTkLabel(
+            header_frame, text="LIP-SYNC", width=10, height=10, font=self.font_18
         )
-        self.header_text_logo.pack(side="left", padx=20, ipadx=5, pady=20, ipady=10)
+        header_text_logo.pack(side="left", padx=20, ipadx=5, pady=20, ipady=10)
 
-        self.header_btn = customtkinter.CTkButton(
-            self.header_frame,
-            text="Generate Video",
-            fg_color=PRIMARY_COLOR_3,
-            hover_color=PRIMARY_COLOR_2,
-            text_color=NEUTRAL_COLOR_1,
-            font=self.font_14,
-            corner_radius=20,
-            command=self.edit,
-        )
-        self.header_btn.pack(side="right", padx=20, pady=20, ipadx=5, ipady=5)
-
-        # content frame
+        # Now, you can add your content to self.scrollable_frame instead of self.content_frame
         self.content_frame = customtkinter.CTkScrollableFrame(
-            self.history_parent_frame,
+            self.home_tab,
             width=self.width,
             height=self.height,
             bg_color=SECONDARY_COLOR,
             fg_color=SECONDARY_COLOR,
         )
         self.content_frame.pack(side="bottom")
+        self.tabview.set("Home")
 
-        # Now, you can add your content to self.scrollable_frame instead of self.content_frame
-        self.welcome__label = customtkinter.CTkLabel(
-            self.content_frame,
-            text="Welcome to Lip Sync, Click the generate video button to sync a video to audio.",
-            text_color=NEUTRAL_COLOR,
-            font=self.font_14,
-        )
-        self.welcome__label.pack(padx=10, pady=20)
-
-    def edit(self):
-        self.history_parent_frame.pack_forget()
-
+    def init_sync_tab(self):
         self.setting = customtkinter.CTkScrollableFrame(
-            self, width=self.width / 2, height=self.height, fg_color=SECONDARY_COLOR
+            self.sync_tab,
+            width=self.width / 2,
+            height=self.height,
+            fg_color=SECONDARY_COLOR,
         )
         self.setting.pack(side="left", fill="both", expand=True)
 
@@ -95,351 +506,57 @@ class App(customtkinter.CTk):
         )
         self.model_frame.pack(side="top", pady=(20, 0), padx=20)
         self.model_frame.grid_propagate(flag=False)
-
-        self.model_text = customtkinter.CTkLabel(self.model_frame, text="Model Version")
-        self.model_text.grid(sticky="w", padx=(20, 0), row=0, column=0)
-
-        self.model_select = customtkinter.CTkComboBox(
-            self.model_frame, values=["wav2lip", "wav2lip_GAN"]
-        )
-        self.model_select.grid(sticky="w", padx=(20, 0), row=1, column=0)
-
-        self.model_quality_text = customtkinter.CTkLabel(
-            self.model_frame, text="Model Quality"
-        )
-        self.model_quality_text.grid(sticky="w", padx=(20, 0), row=0, column=1)
-
-        self.model_quality_select = customtkinter.CTkComboBox(
-            self.model_frame, values=["Improved", "Fast", "Enhanced"]
-        )
-        self.model_quality_select.grid(sticky="w", padx=(20, 0), row=1, column=1)
-
+        model_options_init(self, self.model_frame)
         # static frame
-        self.static_frame = customtkinter.CTkFrame(
-            self.setting, width=self.width / 2, height=80, fg_color=PRIMARY_COLOR
+        self.rendering_frame = customtkinter.CTkFrame(
+            self.setting, width=self.width / 2, height=100, fg_color=PRIMARY_COLOR
         )
-        self.static_frame.pack(side="top", pady=(20, 0), padx=20)
-        self.static_frame.grid_propagate(flag=False)
-
-        self.check_static = customtkinter.BooleanVar(value=False)
-        self.static = customtkinter.CTkCheckBox(
-            self.static_frame,
-            text="Static",
-            checkbox_height=20,
-            checkbox_width=20,
-            variable=self.check_static,
-        )
-        self.static.grid(sticky="w", padx=(20, 0), pady=(20, 0), row=0, column=0)
-
-        self.check_rotate = customtkinter.BooleanVar(value=False)
-        self.rotate = customtkinter.CTkCheckBox(
-            self.static_frame,
-            text="Rotate",
-            checkbox_height=20,
-            checkbox_width=20,
-            variable=self.check_rotate,
-        )
-        self.rotate.grid(sticky="w", padx=(20, 0), pady=(20, 0), row=0, column=1)
-
-        self.check_smooth = customtkinter.BooleanVar(value=False)
-        self.smooth = customtkinter.CTkCheckBox(
-            self.static_frame,
-            text="Smooth",
-            checkbox_height=20,
-            checkbox_width=20,
-            variable=self.check_smooth,
-        )
-        self.smooth.grid(sticky="w", padx=(20, 0), pady=(20, 0), row=0, column=2)
-
-        self.check_res = customtkinter.BooleanVar(value=True)
-        self.super_resolution = customtkinter.CTkCheckBox(
-            self.static_frame,
-            text="Super Resolution",
-            checkbox_height=20,
-            checkbox_width=20,
-            variable=self.check_res,
-        )
-        self.super_resolution.grid(
-            sticky="w", padx=(20, 0), pady=(20, 0), row=0, column=3
-        )
+        self.rendering_frame.pack(side="top", pady=(20, 0), padx=20)
+        self.rendering_frame.grid_propagate(flag=False)
+        rendering_options_init(self, self.rendering_frame)
 
         # padding
-        self.padface = customtkinter.CTkFrame(
-            self.setting, width=self.width / 2, height=80, fg_color=PRIMARY_COLOR
+        self.padding = customtkinter.CTkFrame(
+            self.setting, width=self.width / 2, height=60, fg_color=PRIMARY_COLOR
         )
-        self.padface.pack(side="top", pady=(20, 0), padx=20)
-        self.padface.grid_propagate(flag=False)
+        self.padding.pack(side="top", pady=(20, 0), padx=20)
+        self.padding.grid_propagate(flag=False)
+        padding_options_init(self, self.padding)
 
-        self.padding_top = customtkinter.CTkLabel(self.padface, text="Padding Top")
-        self.padding_top.grid(sticky="w", padx=(20, 0), row=0, column=0)
-
-        self.pad_entry_1 = customtkinter.CTkEntry(
-            self.padface, placeholder_text="0", width=120
+        # cropping
+        self.cropping = customtkinter.CTkFrame(
+            self.setting, width=self.width / 2, height=60, fg_color=PRIMARY_COLOR
         )
-        self.pad_entry_1.grid(sticky="w", padx=(20, 0), row=1, column=0)
-
-        self.padding_bottom = customtkinter.CTkLabel(
-            self.padface, text="Padding Bottom"
-        )
-        self.padding_bottom.grid(sticky="w", padx=(20, 0), row=0, column=1)
-
-        self.pad_entry_2 = customtkinter.CTkEntry(
-            self.padface, placeholder_text="0", width=120
-        )
-        self.pad_entry_2.grid(sticky="w", padx=(20, 0), row=1, column=1)
-
-        self.padding_left = customtkinter.CTkLabel(self.padface, text="Padding Left")
-        self.padding_left.grid(sticky="w", padx=(20, 0), row=0, column=3)
-
-        self.pad_entry_3 = customtkinter.CTkEntry(
-            self.padface, placeholder_text="0", width=120
-        )
-        self.pad_entry_3.grid(sticky="w", padx=(20, 0), row=1, column=3)
-
-        self.padding_right = customtkinter.CTkLabel(self.padface, text="Padding Right")
-        self.padding_right.grid(sticky="w", padx=(20, 0), row=0, column=4)
-
-        self.pad_entry_4 = customtkinter.CTkEntry(
-            self.padface, placeholder_text="0", width=120
-        )
-        self.pad_entry_4.grid(sticky="w", padx=(20, 0), row=1, column=4)
-
-        # facemask
-        self.facemask = customtkinter.CTkFrame(
-            self.setting, width=self.width / 2, height=80, fg_color=PRIMARY_COLOR
-        )
-        self.facemask.pack(side="top", pady=(20, 0), padx=20)
-        self.facemask.grid_propagate(flag=False)
-
-        self.facemask_top = customtkinter.CTkLabel(self.facemask, text="Facemask Top")
-        self.facemask_top.grid(sticky="w", padx=(20, 0), row=0, column=0)
-
-        self.face_entry_1 = customtkinter.CTkEntry(
-            self.facemask, placeholder_text="0", width=120
-        )
-        self.face_entry_1.grid(sticky="w", padx=(20, 0), row=1, column=0)
-
-        self.facemask_bottom = customtkinter.CTkLabel(
-            self.facemask, text="Facemask Bottom"
-        )
-        self.facemask_bottom.grid(sticky="w", padx=(20, 0), row=0, column=1)
-
-        self.face_entry_2 = customtkinter.CTkEntry(
-            self.facemask, placeholder_text="0", width=120
-        )
-        self.face_entry_2.grid(sticky="w", padx=(20, 0), row=1, column=1)
-
-        self.facemask_left = customtkinter.CTkLabel(self.facemask, text="Facemask Left")
-        self.facemask_left.grid(sticky="w", padx=(20, 0), row=0, column=3)
-
-        self.face_entry_3 = customtkinter.CTkEntry(
-            self.facemask, placeholder_text="0", width=120
-        )
-        self.face_entry_3.grid(sticky="w", padx=(20, 0), row=1, column=3)
-
-        self.facemask_right = customtkinter.CTkLabel(
-            self.facemask, text="Facemask Right"
-        )
-        self.facemask_right.grid(sticky="w", padx=(20, 0), row=0, column=4)
-
-        self.face_entry_4 = customtkinter.CTkEntry(
-            self.facemask, placeholder_text="0", width=120
-        )
-        self.face_entry_4.grid(sticky="w", padx=(20, 0), row=1, column=4)
+        self.cropping.pack(side="top", pady=(20, 0), padx=20)
+        self.cropping.grid_propagate(flag=False)
+        crop_options_init(self, self.cropping)
 
         # boundingbox
         self.boundingbox = customtkinter.CTkFrame(
-            self.setting, width=self.width / 2, height=80, fg_color=PRIMARY_COLOR
+            self.setting, width=self.width / 2, height=60, fg_color=PRIMARY_COLOR
         )
         self.boundingbox.pack(side="top", pady=(20, 0), padx=20)
         self.boundingbox.grid_propagate(flag=False)
+        bounding_box_options_init(self, self.boundingbox)
 
-        self.bounding_top = customtkinter.CTkLabel(
-            self.boundingbox, text="Bounding Top"
+        # facemask
+        self.mask = customtkinter.CTkFrame(
+            self.setting, width=self.width / 2, height=60, fg_color=PRIMARY_COLOR
         )
-        self.bounding_top.grid(sticky="w", padx=(20, 0), row=0, column=0)
-
-        self.bound_entry_1 = customtkinter.CTkEntry(
-            self.boundingbox, placeholder_text="0", width=120
-        )
-        self.bound_entry_1.grid(sticky="w", padx=(20, 0), row=1, column=0)
-
-        self.bounding_bottom = customtkinter.CTkLabel(
-            self.boundingbox, text="Bounding Bottom"
-        )
-        self.bounding_bottom.grid(sticky="w", padx=(20, 0), row=0, column=1)
-
-        self.bound_entry_2 = customtkinter.CTkEntry(
-            self.boundingbox, placeholder_text="0", width=120
-        )
-        self.bound_entry_2.grid(sticky="w", padx=(20, 0), row=1, column=1)
-
-        self.bounding_left = customtkinter.CTkLabel(
-            self.boundingbox, text="Bounding Left"
-        )
-        self.bounding_left.grid(sticky="w", padx=(20, 0), row=0, column=3)
-
-        self.bound_entry_3 = customtkinter.CTkEntry(
-            self.boundingbox, placeholder_text="0", width=120
-        )
-        self.bound_entry_3.grid(sticky="w", padx=(20, 0), row=1, column=3)
-
-        self.bounding_right = customtkinter.CTkLabel(
-            self.boundingbox, text="Bounding Right"
-        )
-        self.bounding_right.grid(sticky="w", padx=(20, 0), row=0, column=4)
-
-        self.bound_entry_4 = customtkinter.CTkEntry(
-            self.boundingbox, placeholder_text="0", width=120
-        )
-        self.bound_entry_4.grid(sticky="w", padx=(20, 0), row=1, column=4)
-
-        # crop
-        self.crop = customtkinter.CTkFrame(
-            self.setting, width=self.width / 2, height=80, fg_color=PRIMARY_COLOR
-        )
-        self.crop.pack(side="top", pady=(20, 0), padx=20)
-        self.crop.grid_propagate(flag=False)
-
-        self.crop_top = customtkinter.CTkLabel(self.crop, text="Crop Top")
-        self.crop_top.grid(sticky="w", padx=(20, 0), row=0, column=0)
-
-        self.crop_entry_1 = customtkinter.CTkEntry(
-            self.crop, placeholder_text="0", width=120
-        )
-        self.crop_entry_1.grid(sticky="w", padx=(20, 0), row=1, column=0)
-
-        self.crop_bottom = customtkinter.CTkLabel(self.crop, text="Crop Bottom")
-        self.crop_bottom.grid(sticky="w", padx=(20, 0), row=0, column=1)
-
-        self.crop_entry_2 = customtkinter.CTkEntry(
-            self.crop, placeholder_text="0", width=120
-        )
-        self.crop_entry_2.grid(sticky="w", padx=(20, 0), row=1, column=1)
-
-        self.crop_left = customtkinter.CTkLabel(self.crop, text="Crop Left")
-        self.crop_left.grid(sticky="w", padx=(20, 0), row=0, column=3)
-
-        self.crop_entry_3 = customtkinter.CTkEntry(
-            self.crop, placeholder_text="0", width=120
-        )
-        self.crop_entry_3.grid(sticky="w", padx=(20, 0), row=1, column=3)
-
-        self.crop_right = customtkinter.CTkLabel(self.crop, text="Crop Right")
-        self.crop_right.grid(sticky="w", padx=(20, 0), row=0, column=4)
-
-        self.crop_entry_4 = customtkinter.CTkEntry(
-            self.crop, placeholder_text="0", width=120
-        )
-        self.crop_entry_4.grid(sticky="w", padx=(20, 0), row=1, column=4)
-
-        # output, upscaler, frames-per-sec
-        self.output_up_frame = customtkinter.CTkFrame(
-            self.setting, width=self.width / 2, height=80, fg_color=PRIMARY_COLOR
-        )
-        self.output_up_frame.pack(side="top", pady=(20, 0), padx=20)
-        self.output_up_frame.grid_propagate(flag=False)
-
-        self.output_height_text = customtkinter.CTkLabel(
-            self.output_up_frame, text="Output Height"
-        )
-        self.output_height_text.grid(sticky="w", padx=(20, 0), row=0, column=0)
-
-        self.output_height = customtkinter.CTkComboBox(
-            self.output_up_frame, values=["full resolution", "half resolution"]
-        )
-        self.output_height.grid(sticky="w", padx=(20, 0), row=1, column=0)
-
-        self.upscaler_text = customtkinter.CTkLabel(
-            self.output_up_frame, text="Upscaler"
-        )
-        self.upscaler_text.grid(sticky="w", padx=(20, 0), row=0, column=1)
-
-        self.upscaler = customtkinter.CTkComboBox(
-            self.output_up_frame, values=["gfpgan", "Restoreformer"]
-        )
-        self.upscaler.grid(sticky="w", padx=(20, 0), row=1, column=1)
-
-        self.fps_text = customtkinter.CTkLabel(
-            self.output_up_frame, text="Frames Per Second"
-        )
-        self.fps_text.grid(sticky="w", padx=(20, 0), row=0, column=2)
-
-        self.frames_per_second = customtkinter.CTkEntry(self.output_up_frame)
-        self.frames_per_second.insert(0, "25")
-        self.frames_per_second.grid(sticky="w", padx=(20, 0), row=1, column=2)
+        self.mask.pack(side="top", pady=(20, 0), padx=20)
+        self.mask.grid_propagate(flag=False)
+        mask_options_init(self, self.mask)
 
         # upload frame
         self.upload = customtkinter.CTkFrame(
-            self, width=self.width / 2, height=self.height, fg_color=SECONDARY_COLOR
+            self.sync_tab,
+            width=self.width / 2,
+            height=self.height,
+            fg_color=SECONDARY_COLOR,
         )
         self.upload.pack(side="right", expand=True, padx=(5, 0))
         self.upload.pack_propagate(flag=False)
-
-        # open image or video
-        self.file_name_label = customtkinter.CTkLabel(
-            self.upload,
-            text="Display File path here",
-            fg_color=PRIMARY_COLOR,
-            text_color=NEUTRAL_COLOR_1,
-            corner_radius=10,
-            width=self.width / 2,
-        )
-        self.file_name_label.pack(
-            anchor="w",
-            padx=(20, 20),
-            pady=(10, 0),
-            ipady=10,
-        )
-
-        # Preview label for image or video
-        self.preview_label = customtkinter.CTkLabel(
-            self.upload,
-            text="Preview will appear here",
-            text_color=PRIMARY_COLOR,
-            corner_radius=10,
-            width=500,
-            height=200,
-        )
-        self.preview_label.pack(anchor="w", padx=(20, 20), pady=(20, 0))
-
-        self.open_image_video = customtkinter.CTkButton(
-            self.upload,
-            text="Click to upload image or video",
-            width=self.width / 2,
-            fg_color=PRIMARY_COLOR,
-            hover_color=PRIMARY_COLOR,
-            corner_radius=10,
-            command=self.open_video_image_dialog,
-        )
-        self.open_image_video.pack(anchor="w", padx=(20, 20), pady=(20, 0), ipady=10)
-
-        # open audio
-        self.file_audio_label = customtkinter.CTkLabel(
-            self.upload,
-            text="selected audio path here",
-            fg_color=PRIMARY_COLOR,
-            text_color=NEUTRAL_COLOR_1,
-            corner_radius=10,
-            width=self.width / 2,
-        )
-        self.file_audio_label.pack(
-            anchor="w",
-            padx=(20, 20),
-            pady=(10, 0),
-            ipady=10,
-        )
-
-        self.open_audio = customtkinter.CTkButton(
-            self.upload,
-            text="Click to upload image or video",
-            width=self.width / 2,
-            fg_color=PRIMARY_COLOR,
-            hover_color=PRIMARY_COLOR,
-            corner_radius=10,
-            command=self.open_audio_dialog,
-        )
-        self.open_audio.pack(anchor="w", padx=(20, 20), pady=(20, 0), ipady=10)
+        file_options_init(self, self.upload)
 
         self.submit_btn = customtkinter.CTkButton(
             self.upload,
@@ -448,66 +565,125 @@ class App(customtkinter.CTk):
             fg_color=PRIMARY_COLOR,
             hover_color=PRIMARY_COLOR,
             corner_radius=10,
-            command=self.invoke,
+            command=self.sync,
         )
-        self.submit_btn.pack(anchor="w", padx=(20, 20), pady=(20, 0), ipady=10)
-
-    def open_video_image_dialog(self):
-        file_types = (
-            ("Image files", "*.jpg *.jpeg *.png"),
-            ("Video files", "*.mp4 *.avi"),
+        self.submit_btn.pack(anchor="w", padx=(20, 20), pady=(70, 0), ipady=10)
+        self.progress = customtkinter.CTkProgressBar(
+            self.upload,
+            width=self.width / 2,
+            height=5,
+            progress_color=PRIMARY_COLOR_2,
         )
+        self.progress.set(0)
+        self.progress.pack(anchor="w", padx=(20, 20), pady=(20, 0), ipady=10)
 
-        file_obj = customtkinter.filedialog.askopenfile(
-            title="Select files", filetypes=file_types
+    def sync(self) -> None:
+        face = self.face_var.get().strip()
+        audio = self.audio_var.get().strip()
+        output = self.output_var.get().strip() or None
+        quality: ModelQuality = self.quality_var.get()
+        version: ModelVersion = self.version_var.get()
+        height: OutputHeight = self.height_var.get()
+        upscaler = self.upscaler_var.get()
+        smooth = self.smooth_var.get()
+        padding: Coordinates = {
+            "top": self.pad_top_var.get(),
+            "bottom": self.pad_bottom_var.get(),
+            "left": self.pad_left_var.get(),
+            "right": self.pad_right_var.get(),
+        }
+        mask: FaceMask = {
+            "size": self.mask_size_var.get(),
+            "feathering": self.mask_feathering_var.get(),
+            "mouth_tracking": self.mask_mouth_tracking.get(),
+            "debug_mask": self.debug_mask.get(),
+        }
+        crop: Coordinates = {
+            "top": self.crop_top_var.get(),
+            "bottom": self.crop_bottom_var.get(),
+            "left": self.crop_left_var.get(),
+            "right": self.crop_right_var.get(),
+        }
+        bounding_box: Coordinates = {
+            "top": self.bounding_top_var.get(),
+            "bottom": self.bounding_bottom_var.get(),
+            "left": self.bounding_left_var.get(),
+            "right": self.bounding_right_var.get(),
+        }
+        rotate = self.rotate_var.get()
+        static = self.static_var.get()
+        fps = self.fps_var.get()
+
+        if not (face and audio):
+            CTkMessagebox(
+                self.sync_tab,
+                title="Cannot Proceed",
+                selficon="cancel",
+                message="Please upload both video/image and audio file",
+            )
+            return
+        self.submit_btn.configure(state="disabled")
+        print("Syncing...")
+        run = main(
+            face=face,
+            audio=audio,
+            output=output,
+            quality=quality,
+            version=version,
+            height=height,
+            smooth=smooth,
+            padding=padding,
+            mask=mask,
+            bounding_box=bounding_box,
+            face_crop=crop,
+            rotate=rotate,
+            upscaler=upscaler,
+            static=static,
+            frames_per_second=fps,
         )
-        file_path = file_obj.name
-
-        if file_obj:
-            self.file_name_label.configure(text=f"Selected: {file_path}")
-            self.display_preview(file_path)
+        try:
+            data = next(run)
+        except Exception as e:
+            CTkMessagebox(
+                self.sync_tab,
+                title="Sync Error",
+                icon="cancel",
+                message=str(e),
+            )
+            return
+        total: int = data["total"]
+        output_file = data["output"]
+        print("Total: ", total)
+        step = 1 / total
+        print("Step: ", step)
+        self.progress.configure(determinate_speed=step)
+        self.progress.set(0)
+        try:
+            for i in run:
+                self.progress.set(i["progress"] * step)
+                self.progress.update()
+        except Exception as e:
+            CTkMessagebox(
+                self.sync_tab,
+                title="Sync Error",
+                icon="cancel",
+                message=str(e),
+            )
+            print("Error: ", e)
         else:
-            self.file_name_label.configure(text="No file selected")
-            self.display_preview("")
+            msg = CTkMessagebox(
+                self.sync_tab,
+                title="Sync Complete",
+                icon="info",
+                message="Syncing complete",
+                option_2="OPEN",
+            )
+            if msg.get() == "OPEN":
+                startfile(output_file)
 
-    def open_audio_dialog(self):
-        file_types = (("Audio files", "*.mp3 *.wav *.aac"),)
-
-        file_obj = customtkinter.filedialog.askopenfile(
-            title="Select files", filetypes=file_types
-        )
-
-        if file_obj:
-            self.file_audio_label.configure(text=f"Selected: {file_obj.name}")
-        else:
-            self.file_audio_label.configure(text="No file selected")
-
-    def display_preview(self, file_path):
-        if file_path.lower().endswith((".jpg", ".jpeg", ".png")):
-            img = Image.open(file_path)
-            img.thumbnail((1000, 200))  # Resize for preview
-            img_preview = ImageTk.PhotoImage(img)
-
-            # Display image preview
-            self.preview_label.configure(image=img_preview, text="")
-            self.preview_label.image = img_preview  # Keep a reference
-        elif file_path.lower().endswith((".mp4", ".avi")):
-            # Display video preview (first frame)
-            cap = cv2.VideoCapture(file_path)
-            ret, frame = cap.read()
-            if ret:
-                self.preview_label.configure(text="")
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                img = Image.fromarray(frame)
-                img.thumbnail((1000, 200), Image.ANTIALIAS)  # Resize for preview
-                img_preview = ImageTk.PhotoImage(img)
-                self.preview_label.configure(image=img_preview, text="")
-                self.preview_label.image = img_preview  # Keep a reference
-            cap.release()
-
-    def invoke(self):
-        print("Processing...")
-        print("Synced Video")
+            print("Synced")
+        self.progress.stop()
+        self.submit_btn.configure(state="normal")
 
 
 # if __name__ == "__main__":
