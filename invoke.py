@@ -76,6 +76,13 @@ logging.basicConfig(
 logger = logging.getLogger("inference")
 logger.setLevel(logging.DEBUG)
 
+def load_database() -> dict:
+    """Load the database."""
+    logger.info("Loading database")
+    with open(DATABASE_PATH, "r") as file:
+        database = json.load(file)
+    return database or {}
+
 
 def save_config(
     run_id: str,
@@ -334,7 +341,6 @@ def main(
         static (bool, optional): Use static image. Defaults to False.
         frames_per_second (int, optional): Frames per second of the final video. Defaults to 25.
     """
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     run_id = uuid4().hex[:8]
     face = os.path.abspath(face)
     audio = os.path.abspath(audio)
@@ -347,14 +353,8 @@ def main(
     output = os.path.abspath(os.path.join(OUTPUT_PATH, output))
     ensure_resouces(face, audio, output)
     data = locals()
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     data.pop("run_id")
-    save_config(
-        run_id,
-        {
-            "timestamp": timestamp,
-            "params": data,
-        },
-    )
 
     audio_folder, audio_file_with_ext = os.path.split(audio)
     audio_file, audio_ext = os.path.splitext(audio_file_with_ext)
@@ -461,4 +461,4 @@ def main(
     ):
         yield {"progress": frame_number}
         frame_number += 1
-    yield {"output": output}
+    save_config(run_id, {"timestamp": timestamp, "params": data})
