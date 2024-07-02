@@ -811,7 +811,3 @@ class App(customtkinter.CTk):
         self.submit_btn.configure(
             state="normal", text="Sync Video", require_redraw=True
         )
-
-
-app = App()
-app.mainloop()
