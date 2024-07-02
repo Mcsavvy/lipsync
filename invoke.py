@@ -452,7 +452,7 @@ def main(
     print(str(len(frames)) + " frames to process")
     batch_size = 1
     ns.wav2lip_batch_size = batch_size
-    total = int(np.ceil(len(frames) / batch_size))
+    total = int(np.ceil(len(mel_chunks) / batch_size))
     yield {"total": total, "output": output}
     frame_number = 1
     do_load(checkpoint_path)
