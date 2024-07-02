@@ -1,14 +1,15 @@
 from __future__ import annotations
 import os
 import customtkinter  # type: ignore[import]
-from CTkMessagebox import CTkMessagebox # type: ignore[import]
-from startfile import startfile # type: ignore[import]
+from CTkMessagebox import CTkMessagebox  # type: ignore[import]
+from startfile import startfile  # type: ignore[import]
 
 
 from PIL import Image, ImageTk
 import cv2
 
-from invoke_dummy import (
+from invoke import (
+    load_database,
     main,
     ModelQuality,
     ModelVersion,
@@ -394,10 +395,117 @@ def model_options_init(app: "App", frame: customtkinter.CTkFrame):
     upscaler.grid(sticky="w", padx=(0, 0), row=1, column=5)
 
 
-class App(customtkinter.CTk):
-    def slider_value(self, value):
-        self.label.configure(text=f"Value: {value}")
+def history_init(app: "App", frame: customtkinter.CTkFrame):
+    def refresh_history():
+        # Code to refresh the history goes here
+        history_label_container.destroy()
+        refresh_button.destroy()
+        for widget in frame.winfo_children():
+            widget.destroy()
+        history_init(app, frame)
 
+    history_label_container = customtkinter.CTkFrame(
+        frame,
+        width=app.width / 2,
+        height=40,
+        fg_color=SECONDARY_COLOR,
+    )
+    history_label_container.pack(side="top", fill="x", expand=False, pady=0, padx=0)
+    history_label_container.grid_propagate(flag=False)
+
+    history_label = customtkinter.CTkLabel(
+        history_label_container,
+        text="History",
+        text_color=NEUTRAL_COLOR,
+        font=("Open Sans", 14, "bold"),
+    )
+    history_label.grid(row=0, column=0, pady=(0, 0), padx=(20, 0), columnspan=2)
+
+    refresh_button = customtkinter.CTkButton(
+        history_label_container,
+        text="↺",
+        width=7,
+        height=2,
+        fg_color=SECONDARY_COLOR,
+        hover_color=PRIMARY_COLOR,
+        corner_radius=20,
+        command=refresh_history,
+        font=("Open Sans", 14, "bold"),
+    )
+    refresh_button.grid(row=0, column=2, pady=(0, 0), padx=(2, 20), sticky="e")
+
+    def get_video_thumbnail(video_path: str) -> ImageTk.PhotoImage:
+        cap = cv2.VideoCapture(video_path)
+        ret, frame = cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(frame)
+            # create a small thumbnail
+            img.thumbnail((40, 40), Image.Resampling.LANCZOS)  # Resize for preview
+            img_preview = ImageTk.PhotoImage(img)
+        else:
+            raise ValueError("Cannot read video file")
+        cap.release()
+        return img_preview
+
+    database = load_database()
+    for i, run_id in enumerate(database):
+        timestamp = database[run_id]["timestamp"]
+        data = database[run_id]["params"]
+        try:
+            image = get_video_thumbnail(data["output"])
+        except Exception as e:
+            print("Error: ", e)
+            continue
+        title = data.get("output", "No Title")
+
+        history_frame = customtkinter.CTkFrame(
+            frame,
+            width=app.width / 2,
+            height=60,
+            fg_color="#808080",
+        )
+        history_frame.pack(side="top", anchor="w", pady=(0, 20), padx=0)
+        history_frame.grid_propagate(flag=False)
+
+        customtkinter.CTkLabel(
+            history_frame,
+            image=image,
+            text="",
+            text_color=NEUTRAL_COLOR,
+            bg_color=NEUTRAL_COLOR,
+            corner_radius=0,
+            width=10,
+            height=10,
+        ).grid(row=0, column=0, pady=5, padx=5, rowspan=2)
+        customtkinter.CTkLabel(
+            history_frame,
+            text=title,
+            text_color=NEUTRAL_COLOR,
+            bg_color="#808080",
+            corner_radius=10,
+        ).grid(row=0, column=1, columnspan=2, sticky="w")
+        customtkinter.CTkLabel(
+            history_frame,
+            text=timestamp,
+            text_color="white",
+            bg_color="#808080",
+            corner_radius=10,
+            font=("Open Sans", 10, "italic"),
+        ).grid(row=1, column=1, sticky="w")
+        customtkinter.CTkButton(
+            history_frame,
+            text="Open",
+            width=7,
+            height=2,
+            fg_color=PRIMARY_COLOR,
+            hover_color=PRIMARY_COLOR,
+            corner_radius=10,
+            command=lambda: startfile(data["output"]),
+        ).grid(row=1, column=2, sticky="e")
+
+
+class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
@@ -476,7 +584,13 @@ class App(customtkinter.CTk):
         header_frame.pack(side="top", fill="x", expand=False, pady=0, padx=0)
 
         header_text_logo = customtkinter.CTkLabel(
-            header_frame, text="LIP-SYNC", width=10, height=10, font=self.font_18
+            header_frame,
+            text="LIP-SYNC",
+            width=10,
+            height=10,
+            font=self.font_18,
+            text_color=NEUTRAL_COLOR_1,
+            bg_color=PRIMARY_COLOR,
         )
         header_text_logo.pack(side="left", padx=20, ipadx=5, pady=20, ipady=10)
 
@@ -489,6 +603,8 @@ class App(customtkinter.CTk):
             fg_color=SECONDARY_COLOR,
         )
         self.content_frame.pack(side="bottom")
+        history_init(self, self.content_frame)
+
         self.tabview.set("Home")
 
     def init_sync_tab(self):
@@ -618,11 +734,13 @@ class App(customtkinter.CTk):
             CTkMessagebox(
                 self.sync_tab,
                 title="Cannot Proceed",
-                selficon="cancel",
+                icon="cancel",
                 message="Please upload both video/image and audio file",
             )
             return
-        self.submit_btn.configure(state="disabled")
+        self.submit_btn.configure(
+            state="disabled", text="Syncing...", require_redraw=True
+        )
         print("Syncing...")
         run = main(
             face=face,
@@ -650,6 +768,9 @@ class App(customtkinter.CTk):
                 icon="cancel",
                 message=str(e),
             )
+            self.submit_btn.configure(
+                state="normal", text="Sync Video", require_redraw=True
+            )
             return
         total: int = data["total"]
         output_file = data["output"]
@@ -658,6 +779,7 @@ class App(customtkinter.CTk):
         print("Step: ", step)
         self.progress.configure(determinate_speed=step)
         self.progress.set(0)
+        self.progress.update()
         try:
             for i in run:
                 self.progress.set(i["progress"] * step)
@@ -668,6 +790,9 @@ class App(customtkinter.CTk):
                 title="Sync Error",
                 icon="cancel",
                 message=str(e),
+            )
+            self.submit_btn.configure(
+                state="normal", text="Sync Video", require_redraw=True
             )
             print("Error: ", e)
         else:
@@ -683,9 +808,10 @@ class App(customtkinter.CTk):
 
             print("Synced")
         self.progress.stop()
-        self.submit_btn.configure(state="normal")
+        self.submit_btn.configure(
+            state="normal", text="Sync Video", require_redraw=True
+        )
 
 
-# if __name__ == "__main__":
 app = App()
 app.mainloop()
