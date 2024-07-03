@@ -1,20 +1,12 @@
 version = 'v8.3'
 
 import os
-import re
-import argparse
 import shutil
 import subprocess
-from IPython.display import clear_output
 
-from easy_functions import (format_time,
-                            load_file_from_url,
-                            load_model,
-                            load_predictor)
-                            # Get the location of the basicsr package
-import os
-import shutil
-import subprocess
+from easy_functions import load_file_from_url, load_model, load_predictor
+
+# Get the location of the basicsr package
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning, module="torchvision.transforms.functional_tensor")
@@ -25,7 +17,7 @@ def get_basicsr_location():
     for line in result.stdout.split('\n'):
         if 'Location: ' in line:
             loc = line.split('Location: ')[1]
-            if loc.endswith("site-packages"):
+            if loc.endswith("site-packages") or loc.endswith("dist-packages"):
                 loc = os.path.join(loc, 'basicsr')
             if loc.endswith('basicsr'):
                 loc = os.path.join(loc, 'data')
