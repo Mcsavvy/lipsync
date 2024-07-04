@@ -11,3 +11,4 @@ customtkinter
 Pillow
 CTkMessagebox
 universal-startfile
+pyarmor
