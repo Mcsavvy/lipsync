@@ -12,6 +12,7 @@ from batch_face import RetinaFace  # type: ignore[import]
 from functools import partial
 from tqdm import tqdm  # type: ignore[import]
 from easy_functions import load_model, g_colab
+from models.wav2lip import Wav2Lip
 
 
 class Namespace(SimpleNamespace):
@@ -20,7 +21,7 @@ class Namespace(SimpleNamespace):
     device: Literal["cuda", "cpu", "mps"]
 
     #  options
-    model: torch.nn.Module
+    model: Wav2Lip
     detector: RetinaFace
     detector_model: torch.nn.Module
     predictor: object
@@ -109,11 +110,11 @@ all_mouth_landmarks = []  # type: ignore
 
 
 def do_load(checkpoint_path):
-    ns.model = load_model(checkpoint_path)
+    ns.model = load_model(checkpoint_path).to(ns.device)
     ns.detector = RetinaFace(
         gpu_id=ns.gpu_id, model_path="checkpoints/mobilenet.pth", network="mobilenet"
     )
-    ns.detector_model = ns.detector.model
+    ns.detector_model = ns.detector.model.to(ns.device)
 
 
 def face_rect(images):
