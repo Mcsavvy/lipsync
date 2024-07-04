@@ -124,11 +124,11 @@ def ensure_resouces(face: str, audio: str, output: str):
         with open(DATABASE_PATH, "r") as file:
             database = json.load(file)
     if database:
-        last_entry = database[next(reversed(database))]
-        last_face = last_entry["params"]["face"]
-        if last_face != face:
-            logger.info("Face changed, removing last_detected_face.pkl")
-            os.remove(os.path.join(CWD, "last_detected_face.pkl"))
+        # last_entry = database[next(reversed(database))]
+        # last_face = last_entry["params"]["face"]
+        # if last_face != face:
+        #     logger.info("Face changed, removing last_detected_face.pkl")
+        os.remove(os.path.join(CWD, "last_detected_face.pkl"))
 
 
 def get_resolution_scale(height: OutputHeight, face: str, is_image: bool):
@@ -360,7 +360,7 @@ def main(
     ensure_resouces(face, audio, output)
     data = locals()
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    data.pop("run_id")
+    data.pop("run_id", None)
 
     audio_folder, audio_file_with_ext = os.path.split(audio)
     audio_file, audio_ext = os.path.splitext(audio_file_with_ext)
