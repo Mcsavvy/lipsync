@@ -79,8 +79,14 @@ logger.setLevel(logging.DEBUG)
 def load_database() -> dict:
     """Load the database."""
     logger.info("Loading database")
-    with open(DATABASE_PATH, "r") as file:
-        database = json.load(file)
+    if not os.path.exists(DATABASE_PATH):
+        logger.debug("Creating database")
+        with open(DATABASE_PATH, "w+") as file:
+            json.dump({}, file)
+            database = {}
+    else:
+        with open(DATABASE_PATH, "r") as file:
+            database = json.load(file)
     return database or {}
 
 
@@ -111,7 +117,7 @@ def ensure_resouces(face: str, audio: str, output: str):
     # get last entry in database
     if not os.path.exists(DATABASE_PATH):
         logger.debug("Creating database")
-        with open(DATABASE_PATH, "w") as file:
+        with open(DATABASE_PATH, "w+") as file:
             json.dump({}, file)
             database = {}
     else:
@@ -260,9 +266,9 @@ def invoke_model(
         )
 
         with torch.no_grad():
-            pred = ns.model(mel_batch, img_batch)  # type: ignore
+            pred = ns.model.__call__(mel_batch, img_batch)  # type: ignore
 
-        pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.0
+        pred = pred.to(ns.device).numpy().transpose(0, 2, 3, 1) * 255.0
         for p, f, c in zip(pred, frames, coords):
             y1, y2, x1, x2 = c
 
