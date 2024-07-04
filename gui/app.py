@@ -3,6 +3,7 @@ import os
 import customtkinter  # type: ignore[import]
 from CTkMessagebox import CTkMessagebox  # type: ignore[import]
 from startfile import startfile  # type: ignore[import]
+import traceback
 
 
 from PIL import Image, ImageTk
@@ -762,6 +763,8 @@ class App(customtkinter.CTk):
         try:
             data = next(run)
         except Exception as e:
+            # print error and traceback to the console
+            print(traceback.format_exc())
             CTkMessagebox(
                 self.sync_tab,
                 title="Sync Error",
@@ -785,6 +788,7 @@ class App(customtkinter.CTk):
                 self.progress.set(i["progress"] * step)
                 self.progress.update()
         except Exception as e:
+            print(traceback.format_exc())
             CTkMessagebox(
                 self.sync_tab,
                 title="Sync Error",
@@ -794,7 +798,6 @@ class App(customtkinter.CTk):
             self.submit_btn.configure(
                 state="normal", text="Sync Video", require_redraw=True
             )
-            print("Error: ", e)
         else:
             msg = CTkMessagebox(
                 self.sync_tab,
