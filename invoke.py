@@ -360,7 +360,7 @@ def main(
     ensure_resouces(face, audio, output)
     data = locals()
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    data.pop("run_id", None)
+    data = {key: value for key, value in data.items() if not key.startswith("_")}
 
     audio_folder, audio_file_with_ext = os.path.split(audio)
     audio_file, audio_ext = os.path.splitext(audio_file_with_ext)
