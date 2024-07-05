@@ -126,7 +126,9 @@ if has_previous_installation:
         for run_id in database:
             params = database[run_id]["params"]
             output = params["output"]
-            if path.exists(output) and path.dirname(output) == installation_path:
+            if path.exists(output) and path.dirname(output) == path.join(
+                installation_path, "result"
+            ):
                 params["output"] = path.join(working_directory, path.basename(output))
         dump_database(database)
 
@@ -135,7 +137,7 @@ if has_previous_installation:
 os.makedirs(path.join(working_directory, "checkpoints"), exist_ok=True)
 os.makedirs(path.join(working_directory, "temp"), exist_ok=True)
 os.makedirs(path.join(working_directory, "face_alignment"), exist_ok=True)
-os.makedirs(path.join(working_directory, "results"), exist_ok=True)
+os.makedirs(path.join(working_directory, "result"), exist_ok=True)
 
 # download mobilenet model
 if not path.exists(path.join(working_directory, "checkpoints", "mobilenet.pth")):
