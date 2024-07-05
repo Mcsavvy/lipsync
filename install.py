@@ -3,7 +3,6 @@ import shutil
 import subprocess
 
 from easy_functions import load_file_from_url, load_model, load_predictor
-from utils import dump_database, load_database
 import warnings
 from os import path
 
@@ -95,13 +94,6 @@ if has_previous_installation:
             path.join(working_directory, "face_alignment"),
             dirs_exist_ok=True,
         )
-    if path.exists(path.join(installation_path, "result")):
-        print(f"Copying synced videos from {installation_path}")
-        shutil.copytree(
-            path.join(installation_path, "result"),
-            path.join(working_directory, "result"),
-            dirs_exist_ok=True,
-        )
     if path.exists(path.join(installation_path, "gfpgan")):
         print(f"Copying gfpgan from {installation_path}")
         shutil.copytree(
@@ -115,23 +107,6 @@ if has_previous_installation:
             path.join(installation_path, "last_detected_face.pkl"),
             path.join(working_directory, "last_detected_face.pkl"),
         )
-    if path.exists(path.join(installation_path, "database.json")):
-        print(f"Copying database from {installation_path}")
-        shutil.copyfile(
-            path.join(installation_path, "database.json"),
-            path.join(working_directory, "database.json"),
-        )
-        database = load_database()
-        print("Updating output paths")
-        for run_id in database:
-            params = database[run_id]["params"]
-            output = params["output"]
-            if path.exists(output) and path.dirname(output) == path.join(
-                installation_path, "result"
-            ):
-                params["output"] = path.join(working_directory, path.basename(output))
-        dump_database(database)
-
 
 # create essential directories
 os.makedirs(path.join(working_directory, "checkpoints"), exist_ok=True)
