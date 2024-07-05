@@ -10,7 +10,6 @@ from PIL import Image, ImageTk
 import cv2
 
 from invoke import (
-    load_database,
     main,
     ModelQuality,
     ModelVersion,
@@ -18,6 +17,7 @@ from invoke import (
     Coordinates,
     FaceMask,
 )
+from utils import load_database
 from .color import (  # type: ignore[import]
     PRIMARY_COLOR,
     PRIMARY_COLOR_2,

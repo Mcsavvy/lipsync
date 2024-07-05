@@ -24,6 +24,14 @@ import numpy as np
 from audio import load_wav, melspectrogram
 from enhance import load_sr, upscale
 from inference import create_mask, create_tracked_mask, datagen, ns, do_load
+from utils import (
+    TEMP_PATH,
+    OUTPUT_PATH,
+    DATABASE_PATH,
+    CWD,
+    MEL_STEP_SIZE,
+    save_config,
+)
 
 
 class Coordinates(TypedDict):
@@ -59,14 +67,6 @@ DefaultBoundingBox: Coordinates = {"top": -1, "bottom": -1, "left": -1, "right":
 DefaultCrop: Coordinates = {"top": 0, "bottom": -1, "left": 0, "right": -1}
 
 # constants
-CWD = os.getcwd()
-DATABASE_PATH = os.path.join(CWD, "database.json")
-TEMP_PATH = os.path.join(CWD, "temp")
-OUTPUT_PATH = os.path.join(CWD, "result")
-MEL_STEP_SIZE = 16
-
-os.makedirs(TEMP_PATH, exist_ok=True)
-os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -75,38 +75,6 @@ logging.basicConfig(
 
 logger = logging.getLogger("inference")
 logger.setLevel(logging.DEBUG)
-
-def load_database() -> dict:
-    """Load the database."""
-    logger.info("Loading database")
-    if not os.path.exists(DATABASE_PATH):
-        logger.debug("Creating database")
-        with open(DATABASE_PATH, "w+") as file:
-            json.dump({}, file)
-            database = {}
-    else:
-        with open(DATABASE_PATH, "r") as file:
-            database = json.load(file)
-    return database or {}
-
-
-def save_config(
-    run_id: str,
-    data: dict,
-) -> None:
-    """Save the configuration to the database."""
-    # create the database if it doesn't exist
-    logger.info("Saving configuration to database")
-    with open(DATABASE_PATH, "r") as file:
-        logger.debug("Loading database")
-        database = json.load(file)
-        database = database if database else {}
-
-    database[run_id] = data
-
-    with open(DATABASE_PATH, "w") as file:
-        logger.debug("Saving configuration")
-        json.dump(database, file, indent=4)
 
 
 def ensure_resouces(face: str, audio: str, output: str):
